@@ -829,6 +829,8 @@ static void sd_config_discard(struct scsi_disk *sdkp, unsigned int mode)
 		    sdkp->unmap_granularity * logical_block_size);
 	sdkp->provisioning_mode = mode;
 
+    pr_err("%s: got mode = %d (%s)\n", __func__, mode, lbp_mode[mode]);
+
 	switch (mode) {
 
 	case SD_LBP_FULL:
@@ -2124,6 +2126,7 @@ static int sd_done(struct scsi_cmnd *SCpnt)
 			case WRITE_SAME_16:
 			case WRITE_SAME:
 				if (SCpnt->cmnd[1] & 8) { /* UNMAP */
+                    pr_err("%s: setting to DISABLE because WS unmap failed", __func__);
 					sd_config_discard(sdkp, SD_LBP_DISABLE);
 				} else {
 					sdkp->device->no_write_same = 1;
@@ -2975,6 +2978,11 @@ static void sd_read_block_limits(struct scsi_disk *sdkp)
 		if (buffer[32] & 0x80)
 			sdkp->unmap_alignment =
 				get_unaligned_be32(&buffer[32]) & ~(1 << 31);
+
+        pr_err("%s: lba_count=%d desc_count=%d lbpvpd=%d lbpu=%d max_unmap_blocks=%d lbpws=%d lbpws10=%d\n",
+            __func__,
+            lba_count, desc_count, sdkp->lbpvpd,
+            sdkp->lbpu, sdkp->max_unmap_blocks, sdkp->lbpws, sdkp->lbpws10);
 
 		if (!sdkp->lbpvpd) { /* LBP VPD page not provided */
 
